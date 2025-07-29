@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en" style="scroll-behavior: smooth;">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Naavik - Charting the Future of Maritime</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Poppins:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+
+    <!-- React & Babel for JSX -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Three.js for 3D Background -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --bg-dark: #112240; /* Slightly lighter dark blue */
+            --gold: #FFD700;
+            --light-blue: #A7C7E7;
+            --text-primary: #EAEAEA;
+            --text-secondary: #a8b2d1;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .font-playfair { font-family: 'Playfair Display', serif; }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* Hero Section Background Image */
+        #home {
+            background-image:  url('images/hero.png');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .glass-card {
+            background: rgba(10, 25, 47, 0.6);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 215, 0, 0.5);
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.1);
+            transform: translateY(-5px);
+        }
+
+        .btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            padding: 0.75rem 2rem;
+            border-radius: 9999px;
+            transition: all 0.3s ease-in-out;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #FFD700, #F0B400);
+            color: #0A192F;
+            border: 2px solid transparent;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s ease;
+            z-index: -1;
+        }
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+        }
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid var(--gold);
+            color: var(--gold);
+        }
+        .btn-secondary:hover {
+            background-color: rgba(255, 215, 0, 0.1);
+            color: #fff;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+        }
+
+        .section-title {
+            @apply text-5xl md:text-7xl font-black font-playfair text-white tracking-tight;
+        }
+
+        .gradient-text {
+            background: -webkit-linear-gradient(45deg, var(--light-blue), var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .section-decorator {
+            @apply w-32 h-1 mx-auto mb-8;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+        }
+
+        .tab-button.active {
+            @apply bg-yellow-400 text-black shadow-lg;
+        }
+        
+        .contact-tab-button.active {
+            background-color: rgba(255, 215, 0, 0.15);
+            color: var(--gold);
+            border-color: var(--gold);
+        }
+
+        /* Scroll Animation */
+        .fade-in-section {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .fade-in-section.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, Fragment } = React;
+
+        // --- Data for Modals ---
+        const contentData = {
+            'sn-modal': {
+                icon: 'Compass', title: 'Seacourse Navigator',
+                content: "Discover your perfect maritime course with our revolutionary platform. Seacourse Navigator provides a modular discovery experience with advanced filters for location, cost, MTI rankings, and course type. Our intelligent matchmaking algorithm connects you with the ideal training institute from a database of over 636 DG-approved MTIs. Get personalized career guidance with our digital counseling assistant and chart your course to success."
+            },
+            'sc-modal': {
+                icon: 'Handshake', title: 'Seaconnect',
+                content: "Welcome to the premier professional network for the maritime industry. Seaconnect is the 'LinkedIn for Maritime,' a dedicated space for professionals, shipping companies, agents, MTIs, and tech partners to connect, collaborate, and grow. Engage in industry-specific forums, discover job opportunities on our curated boards, and find mentorship to advance your career."
+            },
+            'sai-modal': {
+                icon: 'Bot', title: 'Seamate AI',
+                content: "Meet your AI-powered virtual co-pilot. Seamate AI is designed to support seafarers in their daily tasks and long-term career. From critical documentation reminders and personalized job alerts to mental health resources and real-time weather updates, Seamate AI is always on duty. Use our voice-activated assistant or our MARPOL/STCW/ISM chatbot for instant support."
+            },
+            'msx-modal': {
+                icon: 'Ship', title: 'MarineSpareX',
+                content: "Step into the future of marine procurement with MarineSpareX, India's first B2B digital marketplace for marine equipment. We connect MTIs, ship owners, suppliers, and repair stations in a verified ecosystem. Compare prices, secure digital contracts, and procure genuine spare parts, simulators, and training equipment with confidence and ease."
+            },
+            'carbon-ledger-modal': {
+                icon: 'Bitcoin', title: 'Naavik Carbon Ledger',
+                content: "Lead the charge in green shipping with the Naavik Carbon Ledger. This upcoming blockchain-powered platform enables shipping companies to meticulously track emissions, trade carbon credits seamlessly, and ensure compliance with evolving global green mandates. Our vision is to position India at the forefront of sustainable maritime finance."
+            },
+            'greenship-ai-modal': {
+                icon: 'Leaf', title: 'GreenShip AI',
+                content: "Optimize your voyages for sustainability and efficiency. GreenShip AI is an advanced platform for green voyage planning, port call optimization, and slow steaming analytics. Our Green Route Engine utilizes weather mapping and sophisticated fuel optimization algorithms to help fleet managers and navigation officers minimize their carbon footprint and operational costs."
+            },
+            'cyber-modal': {
+                icon: 'ShieldCheck', title: 'Naavik CyberMarine™',
+                content: "Safeguard your maritime assets in the digital age. Naavik CyberMarine™ is a comprehensive cybersecurity suite for ships, MTIs, and ports. We protect critical navigation systems, crew devices, and cloud communications from emerging cyber threats. Our platform includes a real-time threat detection dashboard, Vulnerability Assessment and Penetration Testing (VAPT), and crew training modules on cyber hygiene."
+            }
+        };
+
+        // --- Reusable Components ---
+        const Header = () => {
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
+            const [isScrolled, setIsScrolled] = useState(false);
+
+            useEffect(() => {
+                const handleScroll = () => {
+                    setIsScrolled(window.scrollY > 20);
+                };
+                window.addEventListener('scroll', handleScroll);
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, []);
+
+            const navLinks = [
+                { href: '#home', label: 'Home' },
+                { href: '#about', label: 'About' },
+                { href: '#olympiad', label: 'Olympiad' },
+                { href: '#webinar', label: 'Webinars' },
+                { href: '#ecosystem', label: 'Ecosystem' },
+                { href: '#edtech', label: 'EdTech' },
+                { href: '#solutions', label: 'Solutions' },
+                { href: '#initiatives', label: 'Initiatives' },
+                { href: '#contact', label: 'Contact' },
+            ];
+
+            return (
+                <header className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-[#0A192F]/80 backdrop-blur-lg border-b border-yellow-400/20' : 'bg-transparent'}`}>
+                    <nav className="container mx-auto px-6 py-4 flex justify-between items-center">
+                        <a href="#home" className="flex items-center space-x-3">
+                            <img src="images/logo.jpg" alt="Naavik Logo" className="h-20 w-20 rounded-2xl shadow-md border-2 border-yellow-400/50" />
+                            <span className="text-3xl font-bold text-white font-orbitron">NAAVIK</span>
+                        </a>
+                        <div className="hidden lg:flex items-center space-x-8 text-sm font-semibold">
+                            {navLinks.map(link => (
+                                <a key={link.href} href={link.href} className="text-gray-300 hover:text-yellow-400 transition-colors duration-300">{link.label}</a>
+                            ))}
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <a href="#contact" className="hidden lg:inline-block btn btn-primary text-sm">Get Involved</a>
+                            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="lg:hidden p-2 rounded-md text-white">
+                                <i data-lucide={isMenuOpen ? "X" : "Menu"} className="h-7 w-7" />
+                            </button>
+                        </div>
+                    </nav>
+                    {isMenuOpen && (
+                        <div className="lg:hidden bg-[#0A192F]/95 backdrop-blur-xl p-4 border-t border-yellow-400/20">
+                            {navLinks.map(link => (
+                                <a key={link.href} href={link.href} onClick={() => setIsMenuOpen(false)} className="block py-3 text-gray-300 hover:text-yellow-400 font-semibold text-center">{link.label}</a>
+                            ))}
+                            <a href="#contact" onClick={() => setIsMenuOpen(false)} className="block mt-4 w-full text-center btn btn-primary">Get Involved</a>
+                        </div>
+                    )}
+                </header>
+            );
+        };
+
+        const BackgroundCanvas = () => {
+            const mountRef = useRef(null);
+
+            useEffect(() => {
+                if (!mountRef.current || !window.THREE) return;
+
+                let scene, camera, renderer, stars, nebula;
+                const mount = mountRef.current;
+
+                const init = () => {
+                    scene = new THREE.Scene();
+                    camera = new THREE.PerspectiveCamera(60, mount.clientWidth / mount.clientHeight, 1, 1000);
+                    camera.position.z = 1;
+                    
+                    renderer = new THREE.WebGLRenderer({ canvas: mount, alpha: true });
+                    renderer.setSize(mount.clientWidth, mount.clientHeight);
+                    renderer.setPixelRatio(window.devicePixelRatio);
+                    
+                    // Stars
+                    const starGeo = new THREE.BufferGeometry();
+                    const starCount = 10000;
+                    const posArray = new Float32Array(starCount * 3);
+                    for (let i = 0; i < starCount * 3; i++) {
+                        posArray[i] = (Math.random() - 0.5) * 10;
+                    }
+                    starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+                    const starMaterial = new THREE.PointsMaterial({
+                        color: 0xFFD700,
+                        size: 0.005,
+                        transparent: true,
+                        opacity: 0.8
+                    });
+                    stars = new THREE.Points(starGeo, starMaterial);
+                    scene.add(stars);
+
+                    // Nebula/Dust
+                    const nebulaGeo = new THREE.BufferGeometry();
+                    const nebulaCount = 2000;
+                    const nebulaPosArray = new Float32Array(nebulaCount * 3);
+                    for (let i = 0; i < nebulaCount * 3; i++) {
+                        nebulaPosArray[i] = (Math.random() - 0.5) * 15;
+                    }
+                    nebulaGeo.setAttribute('position', new THREE.BufferAttribute(nebulaPosArray, 3));
+                    const nebulaMaterial = new THREE.PointsMaterial({
+                        color: 0xA7C7E7,
+                        size: 0.02,
+                        transparent: true,
+                        opacity: 0.1,
+                        blending: THREE.AdditiveBlending
+                    });
+                    nebula = new THREE.Points(nebulaGeo, nebulaMaterial);
+                    scene.add(nebula);
+                };
+
+                let mouseX = 0, mouseY = 0;
+                const onMouseMove = (event) => {
+                    mouseX = event.clientX - window.innerWidth / 2;
+                    mouseY = event.clientY - window.innerHeight / 2;
+                };
+
+                const onWindowResize = () => {
+                    if (!renderer || !camera) return;
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                };
+                
+                const clock = new THREE.Clock();
+                const animate = () => {
+                    if (!stars || !renderer) return;
+                    const elapsedTime = clock.getElapsedTime();
+
+                    stars.rotation.y = -mouseX * 0.00005;
+                    stars.rotation.x = -mouseY * 0.00005;
+                    
+                    nebula.rotation.y = elapsedTime * 0.05;
+                    nebula.rotation.x = elapsedTime * 0.02;
+
+                    renderer.render(scene, camera);
+                    requestAnimationFrame(animate);
+                };
+
+                init();
+                animate();
+
+                window.addEventListener('resize', onWindowResize);
+                document.addEventListener('mousemove', onMouseMove);
+
+                return () => {
+                    window.removeEventListener('resize', onWindowResize);
+                    document.removeEventListener('mousemove', onMouseMove);
+                    if (renderer) renderer.dispose();
+                };
+            }, []);
+
+            return <canvas ref={mountRef} id="bg-canvas" />;
+        };
+        
+        const Modal = ({ modalId, activeModal, onCloseModal }) => {
+            const isActive = activeModal && activeModal.id === modalId;
+            if (!isActive) return null;
+
+            const { icon, title, content } = activeModal.data;
+            
+            return (
+                <div 
+                    className={`fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                    onClick={onCloseModal}
+                >
+                    <div 
+                        className={`bg-[#0A192F] border border-yellow-400/30 rounded-2xl shadow-2xl shadow-yellow-500/10 w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-all duration-300 ${isActive ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between p-5 border-b border-yellow-400/20">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 rounded-lg bg-yellow-400/10 text-yellow-400">
+                                    <i data-lucide={icon} className="w-6 h-6" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white font-playfair">{title}</h3>
+                            </div>
+                            <button onClick={onCloseModal} className="p-2 rounded-full hover:bg-white/10 text-gray-300">
+                                <i data-lucide="X" className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto">
+                            <p className="text-gray-300 leading-relaxed">{content}</p>
+                        </div>
+                        <div className="p-4 bg-black/20 border-t border-yellow-400/20 rounded-b-2xl text-right">
+                           <button onClick={onCloseModal} className="btn btn-secondary px-6 py-2 text-sm">Close</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const CountdownTimer = () => {
+            const calculateTimeLeft = () => {
+                const difference = +new Date('2025-08-25T17:00:00') - +new Date();
+                let timeLeft = {};
+
+                if (difference > 0) {
+                    timeLeft = {
+                        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+                        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+                        minutes: Math.floor((difference / 1000 / 60) % 60),
+                        seconds: Math.floor((difference / 1000) % 60),
+                    };
+                }
+                return timeLeft;
+            };
+
+            const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
+
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    setTimeLeft(calculateTimeLeft());
+                }, 1000);
+                return () => clearTimeout(timer);
+            });
+
+            return (
+                 <div className="flex justify-center gap-4 md:gap-8">
+                    {Object.entries(timeLeft).map(([interval, value]) => (
+                        <div key={interval} className="text-center bg-black/20 p-4 rounded-lg border border-yellow-400/20 w-24">
+                            <div className="text-4xl md:text-5xl font-bold text-yellow-400 font-orbitron">{value.toString().padStart(2, '0')}</div>
+                            <div className="text-sm uppercase text-gray-400 tracking-widest">{interval}</div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        const EcosystemSection = () => {
+            const [activeTab, setActiveTab] = useState('edtech');
+
+            const tabContent = {
+                edtech: {
+                    icon: 'BrainCircuit', title: 'Naavik EdTech',
+                    subtitle: 'Revolutionizing Maritime Learning & Career Discovery for the Youth.',
+                    description: 'Naavik EdTech is India’s first dedicated platform to make maritime careers accessible and aspirational for school students, cadets, and early-career professionals through structured, interactive, and affordable educational programs.',
+                    offerings: [
+                        { name: 'Seminars & Webinars', desc: 'Regular school-level and online sessions by maritime experts on life at sea, career paths, and real-world insights.' },
+                        { name: 'National Maritime Olympiad 2026', desc: 'India’s first competitive maritime awareness contest for Class 6–12, with national rankings and scholarships.' },
+                        { name: 'Preparation Batches (Nov 2025)', desc: 'Short-term Olympiad prep batches with mock tests, sample questions, and live mentorship.' },
+                        { name: 'Vocational Courses (Coming Soon)', desc: 'Skill-based modules on safety, logistics, and marine operations with industry certifications.' },
+                    ]
+                },
+                solutions: {
+                    icon: 'Wrench', title: 'Naavik Maritime Solutions',
+                    subtitle: 'Smart Tools & Platforms for the Future of Maritime Operations.',
+                    description: 'Naavik Maritime Solutions delivers practical, tech-powered innovations for students, training institutes, shipping companies, and maritime professionals.',
+                    offerings: [
+                        { name: 'SeaCourse Navigator', desc: 'An AI-based career recommendation engine to explore DG Shipping-approved courses and career routes.' },
+                        { name: 'SeaMate AI', desc: 'An offline AI assistant for ship crew, trained with maritime protocols and SOPs — like ChatGPT for the ship!' },
+                        { name: 'MarineSpareX', desc: 'India’s first digital marketplace for marine spare parts, connecting suppliers and ship managers.' },
+                        { name: 'SeaConnect', desc: 'A maritime-exclusive community platform for cadets, seafarers, and recruiters to network, learn, and grow.' },
+                    ]
+                },
+                initiatives: {
+                    icon: 'Megaphone', title: 'Naavik Initiatives',
+                    subtitle: 'Empowering India’s Maritime Identity Through Ground-Level Campaigns.',
+                    description: 'Naavik Initiatives are mission-driven programs designed to create awareness, inspire youth, and support maritime inclusion across India’s most dynamic and underserved regions.',
+                    offerings: [
+                        { name: 'Maritime Awareness Campaign 2025', desc: 'An ambitious 4-state campaign aiming to reach 50,000+ students and parents in Delhi, Mumbai, Lucknow & Bihar.' },
+                        { name: 'Free School Seminars', desc: 'Expert sessions, career guidance handbooks, and volunteer-led Q&A booths.' },
+                        { name: 'Interactive Maritime Zone', desc: 'Featuring ship models, equipment demos, and virtual tours to spark curiosity.' },
+                        { name: '#OceanAmbassador2025', desc: 'A social media campaign to engage youth and create a national movement.' },
+                    ]
+                }
+            };
+
+            const currentContent = tabContent[activeTab];
+
+            return (
+                 <section id="ecosystem" className="py-24 lg:py-32 bg-[#0A192F]/50 fade-in-section">
+                    <div className="container mx-auto px-6">
+                        <div className="text-center mb-16">
+                            <h2 className="text-4xl font-bold font-playfair text-white mb-6">The Naavik Ecosystem</h2>
+                            <div className="section-decorator"></div>
+                            <p className="mt-4 text-lg max-w-3xl mx-auto text-gray-300">India’s First Integrated Platform for Maritime Education, Innovation & Awareness. From virtual classrooms to national campaigns — Naavik is shaping the leaders of tomorrow.</p>
+                        </div>
+
+                        <div className="flex justify-center mb-12">
+                            <div className="flex space-x-2 bg-black/30 p-2 rounded-full border border-yellow-400/20">
+                                <button onClick={() => setActiveTab('edtech')} className={`tab-button px-6 py-2 rounded-full font-semibold transition-all duration-300 flex items-center gap-2 ${activeTab === 'edtech' ? 'active' : 'text-gray-300 hover:bg-white/10'}`}><i data-lucide="BrainCircuit" style={{width: 18, height: 18}}/> 🏆 EdTech</button>
+                                <button onClick={() => setActiveTab('solutions')} className={`tab-button px-6 py-2 rounded-full font-semibold transition-all duration-300 flex items-center gap-2 ${activeTab === 'solutions' ? 'active' : 'text-gray-300 hover:bg-white/10'}`}><i data-lucide="Wrench" style={{width: 18, height: 18}}/> Solutions</button>
+                                <button onClick={() => setActiveTab('initiatives')} className={`tab-button px-6 py-2 rounded-full font-semibold transition-all duration-300 flex items-center gap-2 ${activeTab === 'initiatives' ? 'active' : 'text-gray-300 hover:bg-white/10'}`}><i data-lucide="Megaphone" style={{width: 18, height: 18}}/> Initiatives</button>
+                            </div>
+                        </div>
+
+                        <div className="glass-card p-8 md:p-12 rounded-3xl">
+                            <div className="text-center">
+                                <i data-lucide={currentContent.icon} className="w-16 h-16 mx-auto text-yellow-400 mb-6" />
+                                <h3 className="text-4xl font-bold font-playfair text-white mb-3">{currentContent.title}</h3>
+                                <p className="font-semibold text-yellow-400 mb-6">{currentContent.subtitle}</p>
+                                <p className="text-gray-300 max-w-3xl mx-auto mb-12">{currentContent.description}</p>
+                            </div>
+                            
+                            <div className="grid md:grid-cols-2 gap-6">
+                                {currentContent.offerings.map(item => (
+                                    <div key={item.name} className="bg-slate-800/50 p-6 rounded-xl border border-yellow-400/20 hover:border-yellow-400/50 transition-colors duration-300">
+                                        <h4 className="font-bold text-lg text-white">{item.name}</h4>
+                                        <p className="text-sm text-gray-400 mt-2">{item.desc}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="mt-20 text-center">
+                             <h3 className="text-3xl font-bold font-playfair text-white mb-8">Be a Part of the Naavik Ecosystem</h3>
+                             <div className="flex justify-center flex-wrap gap-4">
+                                 <a href="#contact" className="btn btn-secondary">Join as a Student/School</a>
+                                 <a href="#contact" className="btn btn-secondary">Explore Solutions</a>
+                                 <a href="#contact" className="btn btn-secondary">Support Campaigns</a>
+                             </div>
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+        
+        const NaavikEdTechSection = () => {
+            return (
+                <section id="edtech" className="py-24 lg:py-32 fade-in-section">
+                    <div className="container mx-auto px-6">
+                        <div className="text-center mb-16">
+                            <h2 className="font-bold text-3xl text-yellow-400 mb-3 font-playfair">Naavik EdTech</h2>
+                            <div className="section-decorator"></div>
+                            <p className="mt-4 text-lg max-w-3xl mx-auto text-gray-300">India’s First Maritime EdTech Platform Shaping Ocean-Ready Careers. Learning beyond textbooks. Careers beyond conventions.</p>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-20 text-center">
+                            <div className="p-4"><i data-lucide="Ship" className="mx-auto w-12 h-12 text-yellow-400 mb-4"/><h4 className="font-bold text-lg text-white">Maritime-Focused Discovery</h4></div>
+                            <div className="p-4"><i data-lucide="Trophy" className="mx-auto w-12 h-12 text-yellow-400 mb-4"/><h4 className="font-bold text-lg text-white">First-of-its-Kind Olympiad</h4></div>
+                            <div className="p-4"><i data-lucide="Users" className="mx-auto w-12 h-12 text-yellow-400 mb-4"/><h4 className="font-bold text-lg text-white">Live Mentorship by Seafarers</h4></div>
+                            <div className="p-4"><i data-lucide="Bot" className="mx-auto w-12 h-12 text-yellow-400 mb-4"/><h4 className="font-bold text-lg text-white">AI-Powered Career Tools</h4></div>
+                        </div>
+
+                        <div className="mb-20">
+                            <h3 className="text-4xl font-bold font-playfair text-center mb-12 text-white">Core Offerings</h3>
+                            <div className="grid md:grid-cols-2 gap-8">
+                                <div className="glass-card p-8 rounded-xl">
+                                    <h4 className="font-bold text-2xl text-yellow-400 mb-3 font-playfair">🏆 National Maritime Olympiad 2026</h4>
+                                    <p className="text-gray-300">India’s gateway exam for maritime curiosity, with national rankings, scholarships, and recognition for students from Class 6-12.</p>
+                                </div>
+                                <div className="glass-card p-8 rounded-xl">
+                                    <h4 className="font-bold text-2xl text-yellow-400 mb-3 font-playfair">🎙️ Master Webinar Series</h4>
+                                    <p className="text-gray-300">Live sessions with top seafarers and experts to clear doubts, bust myths, and guide careers. Guidance the ocean demands.</p>
+                                </div>
+                                <div className="glass-card p-8 rounded-xl">
+                                    <h4 className="font-bold text-2xl text-yellow-400 mb-3 font-playfair">🧪 Preparation Batches</h4>
+                                    <p className="text-gray-300">Focused batches for Olympiad and career entry exams (IMU-CET, sponsorship tests) with mock tests and mentorship.</p>
+                                </div>
+                                <div className="glass-card p-8 rounded-xl">
+                                    <h4 className="font-bold text-2xl text-yellow-400 mb-3 font-playfair">🧭 SeaCourse Navigator</h4>
+                                    <p className="text-gray-300">An intelligent career planner suggesting the best courses and DG Shipping-approved colleges based on your profile.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="bg-gradient-to-r from-blue-900/30 to-slate-900/30 p-10 rounded-2xl shadow-lg text-center border border-yellow-400/20">
+                            <h3 className="text-4xl font-bold font-playfair text-white mb-6">Naavik EdTech for Schools</h3>
+                            <p className="max-w-3xl mx-auto text-gray-300 mb-8">We partner with CBSE, ICSE, and State Board schools to conduct in-school seminars, Olympiad camps, and provide free career guidance resources for students.</p>
+                            <div className="flex justify-center flex-wrap gap-4">
+                                <a href="#contact" className="btn btn-primary">Book a Free School Seminar</a>
+                                <a href="#contact" className="btn btn-secondary">Request School Dashboard</a>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+            )
+        }
+
+        const NaavikInitiativesSection = () => {
+            return (
+                <section id="initiatives" className="py-24 lg:py-32 bg-[#0A192F]/50 fade-in-section">
+                    <div className="container mx-auto px-6">
+                        <div className="text-center mb-16">
+                            <h2 className="text-4xl font-bold font-playfair text-white mb-6">Naavik Initiatives</h2>
+                            <div className="section-decorator"></div>
+                            <p className="mt-4 text-lg max-w-3xl mx-auto text-gray-300">Igniting Maritime Minds. Empowering India’s Next-Gen Innovators. We create impact at scale, from on-ground campaigns to structured internship programs.</p>
+                        </div>
+
+                        <div className="grid lg:grid-cols-2 gap-12">
+                            <div className="glass-card p-8 rounded-2xl">
+                                <h3 className="text-4xl font-bold font-playfair text-white mb-6">🚢 Maritime Awareness Campaign 2025</h3>
+                                <p className="text-gray-300 mb-8">India’s largest-ever Maritime Awareness Campaign across 4 strategic states: Delhi, Mumbai, Lucknow, and Bihar.</p>
+                                <div className="space-y-6 mb-8">
+                                    <div className="flex items-start gap-4"><i data-lucide="Target" className="w-7 h-7 text-yellow-400 mt-1 flex-shrink-0" /><div><h5 className="font-semibold text-white text-lg">Build Career Awareness</h5><p className="text-sm text-gray-400">Highlighting India’s rich maritime history and future opportunities.</p></div></div>
+                                    <div className="flex items-start gap-4"><i data-lucide="Users" className="w-7 h-7 text-yellow-400 mt-1 flex-shrink-0" /><div><h5 className="font-semibold text-white text-lg">Direct Access to Experts</h5><p className="text-sm text-gray-400">Free seminars, career counselling, and Q&A sessions.</p></div></div>
+                                    <div className="flex items-start gap-4"><i data-lucide="Megaphone" className="w-7 h-7 text-yellow-400 mt-1 flex-shrink-0" /><div><h5 className="font-semibold text-white text-lg">Distribute Awareness Kits</h5><p className="text-sm text-gray-400">Providing physical and digital resources to every participant.</p></div></div>
+                                </div>
+                                <a href="#contact" className="btn btn-primary w-full text-center">Book a Free Seminar</a>
+                            </div>
+
+                            <div className="glass-card p-8 rounded-2xl">
+                                <h3 className="text-4xl font-bold font-playfair text-white mb-6">🚀 Naavik Launchpad: Internship Program</h3>
+                                <p className="text-gray-300 mb-8">India’s first cross-functional internship program in Maritime, EdTech, and Innovation, offering real-world exposure across 8 high-impact departments.</p>
+                                <div className="space-y-6 mb-8">
+                                     <div className="flex items-start gap-4"><i data-lucide="Award" className="w-7 h-7 text-yellow-400 mt-1 flex-shrink-0" /><div><h5 className="font-semibold text-white text-lg">Structured 3-Month Program</h5><p className="text-sm text-gray-400">Hands-on experience in Branding, Tech, Marketing, Research, and more.</p></div></div>
+                                     <div className="flex items-start gap-4"><i data-lucide="Wrench" className="w-7 h-7 text-yellow-400 mt-1 flex-shrink-0" /><div><h5 className="font-semibold text-white text-lg">Certificate & LOR</h5><p className="text-sm text-gray-400">Gain a certificate and a letter of recommendation upon completion.</p></div></div>
+                                     <div className="flex items-start gap-4"><i data-lucide="Briefcase" className="w-7 h-7 text-yellow-400 mt-1 flex-shrink-0" /><div><h5 className="font-semibold text-white text-lg">Real-World Impact</h5><p className="text-sm text-gray-400">Contribute to live projects that shape India's maritime future.</p></div></div>
+                                </div>
+                                <a href="#contact" className="btn btn-primary w-full text-center">Apply for Internship</a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )
+        }
+
+        const ContactSection = () => {
+            const [activeTab, setActiveTab] = useState('student');
+
+            const renderForm = () => {
+                switch(activeTab) {
+                    case 'student':
+                        return <div className="space-y-4 text-center"><p className="text-gray-300">Register your interest for webinars, the Olympiad, or vocational batches.</p><a href="https://forms.gle/9TH15ipjcEWph8Xu5" className="btn btn-primary w-full text-center">Enroll as a Student →</a></div>;
+                    case 'school':
+                        return <div className="space-y-4 text-center"><p className="text-gray-300">Invite Naavik to host a seminar, internship drive, or Olympiad roadshow at your institution.</p><a href="https://forms.gle/itSMkEY5oPJeJ92i9" className="btn btn-primary w-full text-center">Partner as an Institution →</a></div>;
+                    case 'stakeholder':
+                        return <div className="space-y-4 text-center"><p className="text-gray-300">Interested in our AI-powered tools like SeaCourse Navigator, SeaMate AI, or MarineSpareX?</p><a href="#" className="btn btn-primary w-full text-center">Get Maritime Solutions →</a></div>;
+                    case 'internship':
+                        return <div className="space-y-4 text-center"><p className="text-gray-300">Seeking a meaningful internship in Tech, Design, Research, Marketing, or HR?</p><a href="https://forms.gle/D5zxiGcJEczkHHFS8" className="btn btn-primary w-full text-center">Apply for Internship →</a></div>;
+                    case 'collaborate':
+                        return <div className="space-y-4 text-center"><p className="text-gray-300">Looking to partner for edtech, vocational skilling, or awareness campaigns?</p><a href="https://forms.gle/ArCo8fScvBtaxQbT9" className="btn btn-primary w-full text-center">Propose Collaboration →</a></div>;
+                    default:
+                        return null;
+                }
+            };
+
+            return (
+               <section id="contact" className="py-24 lg:py-32 fade-in-section">
+                    <div className="container mx-auto px-6">
+                        <div className="text-center mb-16">
+                            <h2 className="text-4xl font-bold font-playfair text-yellow-300 mb-6">Contact | Register | Collaborate</h2>
+                            <div className="section-decorator"></div>
+                            <p className="text-lg max-w-3xl mx-auto text-gray-300">Whether you're a student, educator, institution, or startup — Naavik welcomes your interest, participation, and partnership. Let’s build the future of maritime together!</p>
+                        </div>
+
+                        <div className="grid lg:grid-cols-2 gap-12 items-start">
+                            <div className="glass-card p-8 rounded-2xl">
+                                <h3 className="text-3xl font-bold font-playfair text-white mb-8 text-center">Choose Your Path — Get Involved</h3>
+                                <div className="flex flex-col items-start space-y-3 mb-8">
+                                    <button onClick={() => setActiveTab('student')} className={`contact-tab-button w-full text-left p-4 rounded-lg border-2 border-transparent font-semibold transition duration-300 flex items-center gap-3 ${activeTab === 'student' ? 'active' : 'hover:bg-yellow-400/10'}`}><i data-lucide="User" /> For Students</button>
+                                    <button onClick={() => setActiveTab('school')} className={`contact-tab-button w-full text-left p-4 rounded-lg border-2 border-transparent font-semibold transition duration-300 flex items-center gap-3 ${activeTab === 'school' ? 'active' : 'hover:bg-yellow-400/10'}`}><i data-lucide="School" /> For Schools/Colleges</button>
+                                    <button onClick={() => setActiveTab('stakeholder')} className={`contact-tab-button w-full text-left p-4 rounded-lg border-2 border-transparent font-semibold transition duration-300 flex items-center gap-3 ${activeTab === 'stakeholder' ? 'active' : 'hover:bg-yellow-400/10'}`}><i data-lucide="Briefcase" /> For Stakeholders & Startups</button>
+                                    <button onClick={() => setActiveTab('internship')} className={`contact-tab-button w-full text-left p-4 rounded-lg border-2 border-transparent font-semibold transition duration-300 flex items-center gap-3 ${activeTab === 'internship' ? 'active' : 'hover:bg-yellow-400/10'}`}><i data-lucide="Award" />  For Internships</button>
+                                    <button onClick={() => setActiveTab('collaborate')} className={`contact-tab-button w-full text-left p-4 rounded-lg border-2 border-transparent font-semibold transition duration-300 flex items-center gap-3 ${activeTab === 'collaborate' ? 'active' : 'hover:bg-yellow-400/10'}`}><i data-lucide="Handshake" /> For Collaborators</button>
+                                </div>
+                                <div className="bg-black/20 p-6 rounded-lg border border-yellow-400/10">
+                                    {renderForm()}
+                                </div>
+                            </div>
+                            <div className="space-y-8">
+                                <div className="glass-card p-8 rounded-2xl">
+                                    <h3 className="text-3xl font-bold font-playfair text-white mb-6">Connect With Us</h3>
+                                     <div className="space-y-6 text-gray-300">
+                                          <div>
+                                              <h4 className="font-semibold text-white text-lg mb-2">Official Emails:</h4>
+                                              <a href="mailto:support@naavik.co.in" className="flex items-center gap-3 hover:text-yellow-400 transition-colors"><i data-lucide="Mail" style={{width:18, height:18}}/> General Support: support@naavik.co.in</a>
+                                              <a href="mailto:officialnaavik@gmail.com" className="flex items-center gap-3 hover:text-yellow-400 transition-colors"><i data-lucide="Mail" style={{width:18, height:18}}/> Collaborations: officialnaavik@gmail.com</a>
+                                         </div>
+                                          <div>
+                                              <h4 className="font-semibold text-white text-lg mb-2">Contact Numbers:</h4>
+                                              <p className="flex items-center gap-3"><i data-lucide="Phone" style={{width:18, height:18}}/> +91 99530 73123</p>
+                                              <p className="flex items-center gap-3"><i data-lucide="Phone" style={{width:18, height:18}}/> +91 85955 57686</p>
+                                              <p className="flex items-center gap-3"><i data-lucide="Phone" style={{width:18, height:18}}/> +91 91202 65493</p>
+                                         </div>
+                                     </div>
+                                </div>
+                                <div className="glass-card p-8 rounded-2xl">
+                                    <h3 className="text-3xl font-bold font-playfair text-white mb-4">Our Office (Virtual)</h3>
+                                    <p className="text-gray-300">Naavik currently functions as a virtual-first, pan-India initiative. Our operations are active in Delhi, Mumbai, Lucknow, and Patna (Bihar).</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )
+        }
+
+
+        // --- Main App Component ---
+        function App() {
+            const [activeModal, setActiveModal] = useState(null);
+
+            const handleOpenModal = (modalId) => setActiveModal({ id: modalId, data: contentData[modalId] });
+            const handleCloseModal = () => setActiveModal(null);
+            
+            // Effect to initialize Lucide icons and scroll animations
+            useEffect(() => {
+                lucide.createIcons();
+
+                const sections = document.querySelectorAll('.fade-in-section');
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('is-visible');
+                        }
+                    });
+                }, { threshold: 0.1 });
+
+                sections.forEach(section => {
+                    observer.observe(section);
+                });
+
+                // Cleanup observer on component unmount
+                return () => {
+                    sections.forEach(section => {
+                        observer.unobserve(section);
+                    });
+                };
+            });
+
+            // Effect for modal escape key
+            useEffect(() => {
+                const handleEsc = (event) => { if (event.keyCode === 27) handleCloseModal(); };
+                window.addEventListener('keydown', handleEsc);
+                return () => window.removeEventListener('keydown', handleEsc);
+            }, []);
+
+            return (
+                <div className="bg-[#112240] text-gray-300">
+                    <BackgroundCanvas />
+                    <Header />
+
+                    <main className="relative z-10">
+                        {/* Hero Section */}
+                        <section id="home" className="relative h-screen flex flex-col justify-center items-center text-center overflow-hidden">
+                            <div className="container mx-auto px-6 relative z-10">
+                                <h1 className="text-6xl md:text-8xl lg:text-9xl font-black leading-tight tracking-tighter mb-6 font-orbitron text-white">
+                                    CHARTING THE <span className="gradient-text">FUTURE</span> OF MARITIME
+                                </h1>
+                                <p className="max-w-3xl mx-auto text-lg md:text-xl text-gray-300 mb-12">
+                                    Naavik is pioneering India’s first Unified Maritime Ecosystem, empowering the next generation of leaders through education, innovation, and global opportunities.
+                                </p>
+                                <div className="flex flex-col sm:flex-row justify-center items-center gap-6">
+                                    <a href="#olympiad" className="btn btn-primary w-full sm:w-auto">
+                                        Explore the Olympiad <i data-lucide="ArrowRight" style={{width:20, height:20}}/>
+                                    </a>
+                                    <a href="#webinar" className="btn btn-secondary w-full sm:w-auto">
+                                        Join a Webinar <i data-lucide="PlayCircle" style={{width:20, height:20}}/>
+                                    </a>
+                                </div>
+                            </div>
+                            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce text-yellow-400">
+                                <i data-lucide="ArrowDown" style={{width:28, height:28}} />
+                            </div>
+                        </section>
+
+                        {/* About Naavik Section */}
+                        <section id="about" className="py-24 lg:py-32 fade-in-section">
+                            <div className="container mx-auto px-6">
+                                <div className="text-center">
+                                    <h2 className="font-bold text-4xl text-yellow-400 mb-4 font-playfair ">About Naavik</h2>
+                                    <div className="section-decorator"></div>
+                                    <p className="text-lg max-w-4xl mx-auto text-gray-300">
+                                        Naavik is India’s pioneering multi-dimensional platform dedicated to transforming the maritime ecosystem through education, innovation, awareness, and AI-driven solutions. Launched with the vision of bridging the gap between the maritime industry and the next generation of professionals, Naavik is not just a company—it is a mission to reimagine maritime excellence for the digital era.
+                                    </p>
+                                </div>
+
+                                <div className="mt-24">
+                                    <div className="text-center">
+                                        <h3 className="text-4xl font-bold font-playfair text-white">Who We Are</h3>
+                                        <p className="mt-4 text-lg max-w-3xl mx-auto text-gray-300">
+                                            An initiative built by young maritime minds, edtech innovators, and technology visionaries, united by one purpose:
+                                        </p>
+                                        <blockquote className="mt-8 text-2xl font-semibold text-yellow-400 italic max-w-3xl mx-auto">
+                                            “To navigate the future of the maritime industry through awareness, empowerment, and innovation.”
+                                        </blockquote>
+                                    </div>
+                                </div>
+
+                                <div className="grid md:grid-cols-1 lg:grid-cols-3 gap-10 mt-24 text-left">
+                                    <div className="glass-card p-8 rounded-2xl">
+                                        <h4 className="text-3xl font-bold font-playfair text-white mb-4">📚 Naavik EdTech</h4>
+                                        <p className="text-gray-300 mb-6">India’s first integrated maritime learning platform for students, aspirants, and professionals.</p>
+                                        <ul className="space-y-3 text-sm text-gray-300">
+                                            <li className="flex gap-3"><i data-lucide="Presentation" className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" /><span><strong>Master Webinar Series:</strong> Real-time sessions with top maritime experts.</span></li>
+                                            <li className="flex gap-3"><i data-lucide="Trophy" className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" /><span><strong>Maritime Olympiad:</strong> India’s only competitive maritime contest for schools.</span></li>
+                                            <li className="flex gap-3"><i data-lucide="Navigation" className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" /><span><strong>SeaCourse Navigator:</strong> Guided career planning to explore shipping careers.</span></li>
+                                            <li className="flex gap-3"><i data-lucide="Cpu" className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" /><span><strong>Skill-based Courses:</strong> Blending maritime knowledge with emerging tech.</span></li>
+                                        </ul>
+                                    </div>
+                                    <div className="glass-card p-8 rounded-2xl">
+                                        <h4 className="text-3xl font-bold font-playfair text-white mb-4">⚙️ Naavik Solutions</h4>
+                                        <p className="text-gray-300 mb-6">Developing smart, futuristic tools for modern seafaring and shipping challenges.</p>
+                                        <ul className="space-y-3 text-sm text-gray-300">
+                                            <li className="flex gap-3"><i data-lucide="Bot" className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" /><span><strong>SeaMate AI:</strong> Your AI-based onboard assistant for cadets and officers.</span></li>
+                                            <li className="flex gap-3"><i data-lucide="ShoppingCart" className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" /><span><strong>MarineSpareX:</strong> B2B marketplace for marine spare parts.</span></li>
+                                            <li className="flex gap-3"><i data-lucide="Users" className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" /><span><strong>SeaConnect:</strong> A seafarer community for networking and job alerts.</span></li>
+                                            <li className="flex gap-3"><i data-lucide="BarChart" className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" /><span><strong>Naavik Analytics:</strong> Real-time dashboard to track learning and safety trends.</span></li>
+                                        </ul>
+                                    </div>
+                                    <div className="glass-card p-8 rounded-2xl">
+                                        <h4 className="text-3xl font-bold font-playfair text-white mb-4">📢 Awareness Campaigns</h4>
+                                        <p className="text-gray-300 mb-6">Nationwide campaigns with a strong commitment to maritime literacy and industry visibility.</p>
+                                        <ul className="space-y-3 text-sm text-gray-300">
+                                            <li className="flex gap-3"><i data-lucide="MapPin" className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" /><span><strong>Active In:</strong> Delhi, Mumbai, Lucknow, Bihar.</span></li>
+                                            <li className="flex gap-3"><i data-lucide="School" className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" /><span><strong>Activities:</strong> Free school seminars, workshops, and career counseling.</span></li>
+                                            <li className="flex gap-3"><i data-lucide="Target" className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" /><span><strong>Goal:</strong> To spark maritime curiosity and unlock opportunities.</span></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div className="mt-24 text-center">
+                                    <h3 className="text-4xl font-bold font-playfair text-white">Our Impact So Far</h3>
+                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mt-12 max-w-5xl mx-auto">
+                                        <div className="text-center"><div className="text-5xl font-bold gradient-text font-orbitron">2</div><p className="text-sm text-gray-400 mt-1 uppercase tracking-wider">Bestselling Books</p></div>
+                                        <div className="text-center"><div className="text-5xl font-bold gradient-text font-orbitron">10K+</div><p className="text-sm text-gray-400 mt-1 uppercase tracking-wider">Students Reached</p></div>
+                                        <div className="text-center"><div className="text-5xl font-bold gradient-text font-orbitron">8</div><p className="text-sm text-gray-400 mt-1 uppercase tracking-wider">Internship Depts</p></div>
+                                        <div className="text-center"><div className="text-5xl font-bold gradient-text font-orbitron">4</div><p className="text-sm text-gray-400 mt-1 uppercase tracking-wider">AI Products</p></div>
+                                        <div className="text-center"><div className="text-5xl font-bold gradient-text font-orbitron">200+</div><p className="text-sm text-gray-400 mt-1 uppercase tracking-wider">Schools Targeted</p></div>
+                                    </div>
+                                </div>
+                                
+                                <div className="mt-24 max-w-5xl mx-auto">
+                                    <h3 className="text-4xl font-bold font-playfair text-white text-center mb-12">What Makes Naavik Unique?</h3>
+                                    <div className="grid md:grid-cols-2 gap-8 text-left">
+                                        <div className="flex items-center gap-6 p-6"><i data-lucide="Zap" className="w-10 h-10 text-yellow-400 flex-shrink-0" /><div><h5 className="font-semibold text-xl text-white">Maritime + EdTech + AI</h5><p className="text-gray-400">A powerful fusion creating unparalleled value.</p></div></div>
+                                        <div className="flex items-center gap-6 p-6"><i data-lucide="Rocket" className="w-10 h-10 text-yellow-400 flex-shrink-0" /><div><h5 className="font-semibold text-xl text-white">Ground-Level Campaigns</h5><p className="text-gray-400">Real-world impact with tangible results.</p></div></div>
+                                        <div className="flex items-center gap-6 p-6"><i data-lucide="Gamepad2" className="w-10 h-10 text-yellow-400 flex-shrink-0" /><div><h5 className="font-semibold text-xl text-white">First-of-its-Kind Olympiad</h5><p className="text-gray-400">Gamified, competitive, and educational.</p></div></div>
+                                        <div className="flex items-center gap-6 p-6"><i data-lucide="Infinity" className="w-10 h-10 text-yellow-400 flex-shrink-0" /><div><h5 className="font-semibold text-xl text-white">End-to-End Innovation</h5><p className="text-gray-400">From sparking awareness to building applications.</p></div></div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-24 text-center glass-card p-12 rounded-3xl max-w-5xl mx-auto">
+                                    <h3 className="text-4xl font-bold font-playfair text-white">Our Vision</h3>
+                                    <p className="mt-6 text-xl text-gray-300">
+                                        To become the <span className="font-bold text-yellow-400">Tesla of Maritime + AI</span>, bringing futuristic innovation, inclusive learning, and real-time problem-solving into the industry, while ensuring zero career confusion, zero dropout, and infinite empowerment.
+                                    </p>
+                                </div>
+                                
+                                <div className="mt-24">
+                                    <h3 className="text-4xl font-bold font-playfair text-white text-center mb-12">Our Mission</h3>
+                                    <div className="grid md:grid-cols-3 gap-10 text-center">
+                                        <div className="p-6">
+                                            <i data-lucide="Globe" className="mx-auto h-16 w-16 text-yellow-400" />
+                                            <p className="mt-6 font-semibold text-lg text-gray-300">To democratize maritime knowledge for students and aspirants across India and beyond.</p>
+                                        </div>
+                                        <div className="p-6">
+                                            <i data-lucide="Cpu" className="mx-auto h-16 w-16 text-yellow-400" />
+                                            <p className="mt-6 font-semibold text-lg text-gray-300">To integrate AI, innovation, and user-centric technology in day-to-day maritime challenges.</p>
+                                        </div>
+                                        <div className="p-6">
+                                            <i data-lucide="Building2" className="mx-auto h-16 w-16 text-yellow-400" />
+                                            <p className="mt-6 font-semibold text-lg text-gray-300">To build a global maritime ecosystem where learners, professionals, and institutions collaborate freely.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-24 bg-gradient-to-r from-blue-900/40 via-slate-900/40 to-black/40 p-10 lg:p-16 rounded-3xl text-center shadow-2xl shadow-yellow-500/10 border border-yellow-400/20">
+                                    <h3 className="text-5xl font-bold font-playfair text-white mb-6">Join the Movement</h3>
+                                    <p className="max-w-3xl mx-auto text-lg text-gray-300 mb-8">
+                                        Whether you're a student, parent, school leader, policymaker, or maritime enthusiast — Naavik welcomes you aboard this voyage to transform the shipping sector for good.
+                                    </p>
+                                    <p className="font-semibold tracking-widest text-yellow-300 mb-8">
+                                        🧭 EXPLORE. LEARN. NAVIGATE. GROW.
+                                    </p>
+                                    <p className="text-2xl font-bold font-orbitron text-white">
+                                        Welcome to the future of maritime — Welcome to Naavik.
+                                    </p>
+                                </div>
+                                
+                                <div className="mt-24 text-center">
+                                    <h3 className="text-4xl font-bold font-playfair text-white mb-6">Meet the Navigators of Naavik</h3>
+                                     <p className="text-lg max-w-3xl mx-auto text-gray-300">Driven by Seafaring Passion. Built with Maritime Vision. Our leadership includes real-time seafarers, visionary thinkers, and global contributors.</p>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16">
+                                    <div className="glass-card p-8 rounded-2xl text-center">
+                                        <img src="images/yash.jpg" alt="Yash Gupta" className="w-32 h-32 rounded-full mx-auto mb-5 border-2 border-yellow-400 shadow-lg"/>
+                                        <h4 className="text-2xl font-bold text-white font-playfair">Yash Gupta</h4>
+                                        <p className="font-semibold text-yellow-400">Founder & CEO – Naavik Group</p>
+                                        <p className="text-sm text-gray-400 mb-4">Deck Cadet, Synergy Shipping | Delhi</p>
+                                        <p className="text-sm text-gray-300">A seafarer turned edupreneur, Yash leads Naavik’s strategy, outreach, and innovation, including the National Maritime Olympiad.</p>
+                                    </div>
+                                     <div className="glass-card p-8 rounded-2xl text-center">
+                                        <img src="images/sanjeev.jpg" alt="Sanjeev Kumar Yadav" className="w-32 h-32 rounded-full mx-auto mb-5 border-2 border-yellow-400 shadow-lg"/>
+                                        <h4 className="text-2xl font-bold text-white font-playfair">Sanjeev Kumar Yadav</h4>
+                                        <p className="font-semibold text-yellow-400">Cofounder – Naavik EdTech</p>
+                                        <p className="text-sm text-gray-400 mb-4">Deck Cadet, Synergy Shipping | Lucknow</p>
+                                        <p className="text-sm text-gray-300">Sanjeev blends frontline maritime experience with academic leadership to drive Naavik's educational platforms and student outreach.</p>
+                                    </div>
+                                     <div className="glass-card p-8 rounded-2xl text-center">
+                                        <img src="images/pihu.jpg" alt="Priyal Ramraje" className="w-32 h-32 rounded-full mx-auto mb-5 border-2 border-yellow-400 shadow-lg"/>
+                                        <h4 className="text-2xl font-bold text-white font-playfair">Priyal Ramraje</h4>
+                                        <p className="font-semibold text-yellow-400">Head of Operations – Mumbai</p>
+                                        <p className="text-sm text-gray-400 mb-4">Deck Cadet, Wallem Shipping | Mumbai</p>
+                                        <p className="text-sm text-gray-300">Priyal brings real-world experience and a passion for maritime diversity, executing campaigns and seminars in Maharashtra.</p>
+                                    </div>
+                                     <div className="glass-card p-8 rounded-2xl text-center">
+                                        <img src="images/anam.jpg" alt="Anam Mulla" className="w-32 h-32 rounded-full mx-auto mb-5 border-2 border-yellow-400 shadow-lg"/>
+                                        <h4 className="text-2xl font-bold text-white font-playfair">Anam Mulla</h4>
+                                        <p className="font-semibold text-yellow-400">Human Resources Lead</p>
+                                        <p className="text-sm text-gray-400 mb-4">Naavik Launchpad & Internships</p>
+                                        <p className="text-sm text-gray-300">Anam is the people-first pillar of Naavik, managing intern recruitment, onboarding, and performance for over 100 interns.</p>
+                                    </div>
+                                     <div className="glass-card p-8 rounded-2xl text-center">
+                                        <img src="images/dk.jpg" alt="Bong Dae Park" className="w-32 h-32 rounded-full mx-auto mb-5 border-2 border-yellow-400 shadow-lg"/>
+                                        <h4 className="text-2xl font-bold text-white font-playfair">Bong Dae Park</h4>
+                                        <p className="font-semibold text-yellow-400">Honorary Strategist</p>
+                                        <p className="text-sm text-gray-400 mb-4">MarineSpareX | Busan, South Korea</p>
+                                        <p className="text-sm text-gray-300">An international maritime strategist, Bong Dae Park helps bridge Korean innovation with Indian maritime needs.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Naavik Olympiad 2026 Section */}
+                        <section id="olympiad" className="py-24 lg:py-32 bg-[#0A192F]/50 fade-in-section">
+                            <div className="container mx-auto px-6">
+                                <div className="text-center mb-16">
+                                    <h2 className="font-bold text-4xl text-yellow-400 mb-4 font-playfair">National Maritime Olympiad 2026</h2>
+                                    <div className="section-decorator"></div>
+                                    <p className="mt-4 text-lg max-w-4xl mx-auto text-gray-300">India’s first and largest maritime-themed national competition for school students from Grades 9 to 12. It’s a movement to empower young India with maritime knowledge, career exposure, and national recognition.</p>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
+                                    <div className="glass-card p-8 rounded-xl"><i data-lucide="Anchor" className="w-10 h-10 text-yellow-400 mb-4"/> <h4 className="font-bold text-xl text-white">Explore the Maritime World</h4> <p className="text-gray-400 mt-2">Learn how oceans, ports, and ships power the global economy.</p></div>
+                                    <div className="glass-card p-8 rounded-xl"><i data-lucide="Megaphone" className="w-10 h-10 text-yellow-400 mb-4"/> <h4 className="font-bold text-xl text-white">Boost Critical Thinking</h4> <p className="text-gray-400 mt-2">Tackle questions blending science, tech, and real-world challenges.</p></div>
+                                    <div className="glass-card p-8 rounded-xl"><i data-lucide="Award" className="w-10 h-10 text-yellow-400 mb-4"/> <h4 className="font-bold text-xl text-white">Win Prestigious Awards</h4> <p className="text-gray-400 mt-2">Earn trophies, scholarships, and certificates from innovators.</p></div>
+                                </div>
+                                
+                                <div className="mb-20">
+                                    <h3 className="text-4xl font-bold font-playfair text-center mb-12 text-white">Important Dates</h3>
+                                    <div className="flex flex-col md:flex-row justify-center items-center gap-8">
+                                        <div className="text-center p-4"> <p className="font-bold text-yellow-400 text-lg">Jan 15, 2026</p> <p className="text-gray-300">Registrations Open</p> </div>
+                                        <div className="text-center p-4 text-2xl text-yellow-400/30 font-thin hidden md:block">/</div>
+                                        <div className="text-center p-4"> <p className="font-bold text-yellow-400 text-lg">Mar 10, 2026</p> <p className="text-gray-300">Early Bird Deadline</p> </div>
+                                        <div className="text-center p-4 text-2xl text-yellow-400/30 font-thin hidden md:block">/</div>
+                                        <div className="text-center p-4"> <p className="font-bold text-yellow-400 text-lg">Apr 30, 2026</p> <p className="text-gray-300">Registration Closes</p> </div>
+                                        <div className="text-center p-4 text-2xl text-yellow-400/30 font-thin hidden md:block">/</div>
+                                        <div className="text-center p-4"> <p className="font-bold text-yellow-400 text-lg">May 15-20, 2026</p> <p className="text-gray-300">Online Round</p> </div>
+                                        <div className="text-center p-4 text-2xl text-yellow-400/30 font-thin hidden md:block">/</div>
+                                        <div className="text-center p-4"> <p className="font-bold text-yellow-400 text-lg">July 2026</p> <p className="text-gray-300">National Finale</p> </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-12 items-start mb-20">
+                                    <div className="glass-card p-8 rounded-2xl">
+                                        <h3 className="text-3xl font-bold text-white mb-6 font-playfair">Competition Structure</h3>
+                                        <div className="space-y-6">
+                                            <div>
+                                                <h4 className="font-bold text-yellow-400 text-xl flex items-center gap-3"><i data-lucide="Monitor" />Round 1 – Online Test (National)</h4>
+                                                <p className="text-gray-300 mt-2 pl-9">45-minute MCQ test on Shipping, Ports, Ocean Science, and Maritime Innovations.</p>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-yellow-400 text-xl flex items-center gap-3"><i data-lucide="Users" />Round 2 – National Finale (Offline)</h4>
+                                                <p className="text-gray-300 mt-2 pl-9">Top 100 finalists compete in a Quiz, Innovation Challenge, and Jury Interview in Delhi/Mumbai.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="glass-card p-8 rounded-2xl">
+                                        <h3 className="text-3xl font-bold text-white mb-6 font-playfair">Who Can Participate?</h3>
+                                        <p className="text-gray-300 mb-4">Students of Classes 6 to 12 from any Indian board (CBSE, ICSE, State Boards, etc.).</p>
+                                        <div className="space-y-3">
+                                            <div className="bg-yellow-400/10 text-yellow-300 p-3 rounded-lg font-semibold">Junior Category: Classes 9 to 10</div>
+                                            <div className="bg-yellow-400/10 text-yellow-300 p-3 rounded-lg font-semibold">Middle Category: Classes 10 and 11</div>
+                                            <div className="bg-yellow-400/10 text-yellow-300 p-3 rounded-lg font-semibold">Senior Category: Classes 11 and 12</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="text-center mb-20">
+                                    <h3 className="text-4xl font-bold font-playfair text-white mb-12">Awards & Recognition</h3>
+                                    <div className="grid md:grid-cols-2 gap-8 text-left">
+                                        <div className="glass-card p-8 rounded-lg">
+                                            <h4 className="font-bold text-2xl mb-4 text-yellow-400 font-playfair">For Students</h4>
+                                            <ul className="space-y-2 text-gray-300 list-disc list-inside">
+                                                <li>National Champion Trophy (Top 3 per category)</li>
+                                                <li>Gold/Silver/Bronze Medals for Top 100</li>
+                                                <li>Prizes worth 50k </li>
+                                                <li>Digital Certificates & Verified Badges</li>
+                                                <li>Naavik Maritime Explorer Kits</li>
+                                            </ul>
+                                        </div>
+                                        <div className="glass-card p-8 rounded-lg">
+                                            <h4 className="font-bold text-2xl mb-4 text-yellow-400 font-playfair">For Schools</h4>
+                                            <ul className="space-y-2 text-gray-300 list-disc list-inside">
+                                                <li>“Maritime Visionary School” Award</li>
+                                                <li>Recognition for Mentors & Principals</li>
+                                                <li>Feature in Naavik’s National Maritime Yearbook</li>
+                                                <li>Social Media Spotlight & Press Mentions</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="glass-card p-8 rounded-2xl mb-20">
+                                    <h3 className="text-4xl font-bold font-playfair text-center text-white mb-6">Free Preparation Kit</h3>
+                                    <p className="text-center text-gray-300 mb-8">Every registered participant gets exclusive access to our comprehensive prep kit.</p>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 text-center">
+                                        <div className="flex flex-col items-center p-4"><i data-lucide="Book" className="w-12 h-12 text-yellow-400 mb-3"/><p className="font-semibold text-white">E-booklet</p></div>
+                                        <div className="flex flex-col items-center p-4"><i data-lucide="Youtube" className="w-12 h-12 text-yellow-400 mb-3"/><p className="font-semibold text-white">Expert Webinars</p></div>
+                                        <div className="flex flex-col items-center p-4"><i data-lucide="File" className="w-12 h-12 text-yellow-400 mb-3"/><p className="font-semibold text-white">Sample Papers</p></div>
+                                        <div className="flex flex-col items-center p-4"><i data-lucide="Lightbulb" className="w-12 h-12 text-yellow-400 mb-3"/><p className="font-semibold text-white">Innovation Guide</p></div>
+                                        <div className="flex flex-col items-center p-4"><i data-lucide="Map" className="w-12 h-12 text-yellow-400 mb-3"/><p className="font-semibold text-white">Career Roadmap</p></div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-gradient-to-r from-blue-900/40 to-slate-900/40 p-10 rounded-2xl shadow-lg border border-yellow-400/20">
+                                    <div className="grid md:grid-cols-2 gap-10 items-center">
+                                        <div>
+                                            <h3 className="text-4xl font-bold font-playfair text-white mb-3">Be the Face of India’s Maritime Future</h3>
+                                            <p className="text-gray-300 mb-6">Register now for the Naavik Maritime Olympiad 2026 and become a certified Ocean Ambassador of India.</p>
+                                            <div className="flex flex-col sm:flex-row gap-4">
+                                                <a href="#contact" className="btn btn-primary w-full sm:w-auto">Register as Student</a>
+                                                <a href="#contact" className="btn btn-secondary w-full sm:w-auto">Register as School</a>
+                                            </div>
+                                        </div>
+                                        <div className="text-center bg-black/30 p-6 rounded-lg border border-yellow-400/20">
+                                            <div className="text-lg font-semibold text-gray-300">Registration Fee</div>
+                                            <div className="text-5xl font-bold text-yellow-400 line-through decoration-2">₹149</div>
+                                            <div className="text-2xl font-bold text-green-400">₹99 Early Bird Price!</div>
+                                            <p className="text-xs text-gray-400 mt-2">Special discounts for schools with 50+ students.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                        
+                        {/* Master Webinar Series Section */}
+                        <section id="webinar" className="py-24 lg:py-32 fade-in-section">
+                            <div className="container mx-auto px-6">
+                                <div className="text-center mb-16">
+                                    <h2 className="font-bold text-4xl text-yellow-400 mb-3 font-playfair">Naavik Master Webinar Series</h2>
+                                    <div className="section-decorator"></div>
+                                    <p className="mt-4 text-lg max-w-4xl mx-auto text-gray-300">Learn from India’s Leading Maritime Minds — Live, Interactive & Career-Shaping. A masterclass experience that blends real-world industry insights, career guidance, and live Q&A from the frontlines of the shipping world.</p>
+                                </div>
+
+                                <div className="grid lg:grid-cols-3 gap-8 mb-20">
+                                    <div className="glass-card p-6 rounded-lg flex items-start gap-4"><i data-lucide="Ship" className="w-12 h-12 text-yellow-400 flex-shrink-0" /><div><h4 className="font-bold text-white text-lg">Meet Top Mariners</h4><p className="text-sm text-gray-400">Hear from Captains, Chief Engineers, and DG Shipping advisors.</p></div></div>
+                                    <div className="glass-card p-6 rounded-lg flex items-start gap-4"><i data-lucide="Compass" className="w-12 h-12 text-yellow-400 flex-shrink-0" /><div><h4 className="font-bold text-white text-lg">Get Career Clarity</h4><p className="text-sm text-gray-400">Understand pathways into the merchant navy, logistics, and ocean tech.</p></div></div>
+                                    <div className="glass-card p-6 rounded-lg flex items-start gap-4"><i data-lucide="Anchor" className="w-12 h-12 text-yellow-400 flex-shrink-0" /><div><h4 className="font-bold text-white text-lg">Ask Anything</h4><p className="text-sm text-gray-400">Live Q&A to solve doubts, myths, and confusion with experts.</p></div></div>
+                                </div>
+
+                                <div className="glass-card p-8 md:p-12 rounded-2xl">
+                                    <div className="grid lg:grid-cols-2 gap-12 items-center">
+                                        <div>
+                                            <h3 className="font-bold text-2xl text-yellow-400 mb-2">Upcoming Master Webinar</h3>
+                                            <h4 className="text-4xl font-bold font-playfair text-white mb-6">Unlocking Maritime Careers: Sea, Shore & Beyond</h4>
+                                            <div className="flex items-center gap-4 text-gray-300 mb-8">
+                                                <i data-lucide="Calendar" className="w-6 h-6"/><span>August 25, 2025 | 5:00 PM – 6:30 PM IST</span>
+                                            </div>
+                                            <h5 className="font-bold text-white mb-4 text-lg">Meet the Speakers:</h5>
+                                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                                <div className="flex items-center gap-3"><img src="https://placehold.co/40x40/0A192F/FFD700?text=YG" className="rounded-full border border-yellow-400/50" alt="yash gupta"/><div><strong className="text-white">Yash Gupta</strong><p className="text-xs text-gray-400">Founder,Naavik</p></div></div>
+                                                <div className="flex items-center gap-3"><img src="https://placehold.co/40x40/0A192F/FFD700?text=SY" className="rounded-full border border-yellow-400/50" alt="Engr. Preeti Sinha"/><div><strong className="text-white">Sanjeev Yadav</strong><p className="text-xs text-gray-400">Co-Founder,Naavik</p></div></div>
+                                                <div className="flex items-center gap-3"><img src="https://placehold.co/40x40/0A192F/FFD700?text=PR" className="rounded-full border border-yellow-400/50" alt="Sandeep Awasthi"/><div><strong className="text-white">Priyal ramraje</strong><p className="text-xs text-gray-400">Deck cadet Wallem shipping </p></div></div>
+                                                <div className="flex items-center gap-3"><img src="https://placehold.co/40x40/0A192F/FFD700?text=DK" className="rounded-full border border-yellow-400/50" alt="Yash Gupta"/><div><strong className="text-white">Bong Dae Park</strong><p className="text-xs text-gray-400">DK Corporation, Korea</p></div></div>
+                                            </div>
+                                        </div>
+                                        <div className="text-center">
+                                            <h4 className="text-2xl font-semibold text-white mb-4">Webinar Starts In:</h4>
+                                            <CountdownTimer />
+                                            <div className="mt-8">
+                                                <a href="#contact" className="btn btn-primary w-full">Register Now </a>
+                                                <p className="text-xs text-gray-400 mt-2"> ₹99 for the first 1000 registrations. Standard Fee: ₹149.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="mt-20">
+                                     <h3 className="text-4xl font-bold font-playfair text-center text-white mb-12">Bonus Takeaways</h3>
+                                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 text-center">
+                                          <div className="glass-card p-6 rounded-lg"><i data-lucide="Book" className="mx-auto w-10 h-10 text-yellow-400 mb-3"/><p className="font-semibold text-white">"Maritime Careers 360°" eBook</p></div>
+                                          <div className="glass-card p-6 rounded-lg"><i data-lucide="File" className="mx-auto w-10 h-10 text-yellow-400 mb-3"/><p className="font-semibold text-white">Career Roadmap PDF</p></div>
+                                          <div className="glass-card p-6 rounded-lg"><i data-lucide="Award" className="mx-auto w-10 h-10 text-yellow-400 mb-3"/><p className="font-semibold text-white">Digital Certificate</p></div>
+                                          <div className="glass-card p-6 rounded-lg"><i data-lucide="Target" className="mx-auto w-10 h-10 text-yellow-400 mb-3"/><p className="font-semibold text-white">Free Entry to Naavik Challenge</p></div>
+                                          <div className="glass-card p-6 rounded-lg"><i data-lucide="Briefcase" className="mx-auto w-10 h-10 text-yellow-400 mb-3"/><p className="font-semibold text-white">Priority Internship Access</p></div>
+                                     </div>
+                                </div>
+
+                            </div>
+                        </section>
+                        
+                        <EcosystemSection />
+
+                        <NaavikEdTechSection />
+                        
+                        {/* Naavik Solutions Section */}
+                        <section id="solutions" className="py-24 lg:py-32 bg-[#0A192F]/50 fade-in-section">
+                            <div className="container mx-auto px-6">
+                                <div className="text-center mb-16">
+                                    <h2 className="text-4xl font-bold font-playfair text-white mb-6">Naavik Maritime Solutions</h2>
+                                    <div className="section-decorator"></div>
+                                    <p className="mt-4 text-lg max-w-4xl mx-auto text-gray-300">Transforming the Maritime Industry Through Technology, Innovation & Intelligence. We are committed to modernizing maritime workflows, bridging data gaps, and redefining efficiency.</p>
+                                     <blockquote className="mt-8 text-2xl font-semibold text-yellow-400 italic max-w-3xl mx-auto">
+                                        “At Naavik Maritime Solutions, we don’t just offer services – we deliver breakthroughs.”
+                                     </blockquote>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-8 mb-20">
+                                    <div className="glass-card p-8 rounded-2xl">
+                                        <i data-lucide="Compass" className="w-12 h-12 text-yellow-400 mb-4"/>
+                                        <h3 className="text-3xl font-bold font-playfair text-white mb-2">SeaCourse Navigator</h3>
+                                        <p className="font-semibold text-gray-300 mb-4">"Your Personalized Roadmap to a Maritime Career"</p>
+                                        <p className="text-sm text-gray-400 mb-6">An AI-powered guidance platform that helps aspirants choose the right path by mapping goals to the best training institutes and certifications.</p>
+                                        <ul className="text-sm space-y-2 text-gray-300"><li className="flex gap-3"><i data-lucide="CheckCircle2" style={{width:18, height:18}} className="text-green-400 mt-0.5"/>Smart Institute Match</li><li className="flex gap-3"><i data-lucide="CheckCircle2" style={{width:18, height:18}} className="text-green-400 mt-0.5"/>Budget & Duration Filter</li><li className="flex gap-3"><i data-lucide="CheckCircle2" style={{width:18, height:18}} className="text-green-400 mt-0.5"/>Roadmap to DGS Compliance</li></ul>
+                                    </div>
+                                    <div className="glass-card p-8 rounded-2xl">
+                                        <i data-lucide="Bot" className="w-12 h-12 text-yellow-400 mb-4"/>
+                                        <h3 className="text-3xl font-bold font-playfair text-white mb-2">SeaMate AI</h3>
+                                        <p className="font-semibold text-gray-300 mb-4">"Your AI-Powered Career and Counselling Assistant"</p>
+                                        <p className="text-sm text-gray-400 mb-6">An intelligent chatbot and voice assistant that acts as your 24/7 maritime mentor for admission guidance, doubt resolution, and document validation.</p>
+                                        <ul className="text-sm space-y-2 text-gray-300"><li className="flex gap-3"><i data-lucide="CheckCircle2" style={{width:18, height:18}} className="text-green-400 mt-0.5"/>Voice + Chat Interaction</li><li className="flex gap-3"><i data-lucide="CheckCircle2" style={{width:18, height:18}} className="text-green-400 mt-0.5"/>Instant Query Resolution</li><li className="flex gap-3"><i data-lucide="CheckCircle2" style={{width:18, height:18}} className="text-green-400 mt-0.5"/>Career Path Recommendations</li></ul>
+                                    </div>
+                                    <div className="glass-card p-8 rounded-2xl">
+                                        <i data-lucide="Anchor" className="w-12 h-12 text-yellow-400 mb-4"/>
+                                        <h3 className="text-3xl font-bold font-playfair text-white mb-2">MarineSpareX</h3>
+                                        <p className="font-semibold text-gray-300 mb-4">"India’s First B2B Marketplace for Marine Equipment"</p>
+                                        <p className="text-sm text-gray-400 mb-6">A digital marketplace connecting marine spare part suppliers, ship repair services, and shipowners for seamless sourcing and procurement.</p>
+                                        <ul className="text-sm space-y-2 text-gray-300"><li className="flex gap-3"><i data-lucide="CheckCircle2" style={{width:18, height:18}} className="text-green-400 mt-0.5"/>Verified Leads for Buyers</li><li className="flex gap-3"><i data-lucide="CheckCircle2" style={{width:18, height:18}} className="text-green-400 mt-0.5"/>Real-Time Pricing & RFQ System</li><li className="flex gap-3"><i data-lucide="CheckCircle2" style={{width:18, height:18}} className="text-green-400 mt-0.5"/>Port-Based Search</li></ul>
+                                    </div>
+                                    <div className="glass-card p-8 rounded-2xl">
+                                        <i data-lucide="Globe2" className="w-12 h-12 text-yellow-400 mb-4"/>
+                                        <h3 className="text-3xl font-bold font-playfair text-white mb-2">SeaConnect</h3>
+                                        <p className="font-semibold text-gray-300 mb-4">"Digitally Connecting the Entire Maritime Ecosystem"</p>
+                                        <p className="text-sm text-gray-400 mb-6">A unified communication and service platform for stakeholders to interact, post jobs, share insights, and host webinars.</p>
+                                        <ul className="text-sm space-y-2 text-gray-300"><li className="flex gap-3"><i data-lucide="CheckCircle2" style={{width:18, height:18}} className="text-green-400 mt-0.5"/>Maritime LinkedIn-like Interface</li><li className="flex gap-3"><i data-lucide="CheckCircle2" style={{width:18, height:18}} className="text-green-400 mt-0.5"/>Startup Discovery & Mentorship</li><li className="flex gap-3"><i data-lucide="CheckCircle2" style={{width:18, height:18}} className="text-green-400 mt-0.5"/>Cross-Border Collaboration</li></ul>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-gradient-to-r from-blue-900/40 to-slate-900/40 p-10 rounded-2xl shadow-lg text-center border border-yellow-400/20">
+                                    <h3 className="text-4xl font-bold font-playfair text-white mb-6">Ready to transform your maritime journey?</h3>
+                                    <p className="max-w-3xl mx-auto text-gray-300 mb-8">Partner with Naavik Maritime Solutions today to leverage cutting-edge technology and accelerate the digital revolution in the Indian maritime sector.</p>
+                                    <div className="flex justify-center flex-wrap gap-6">
+                                        <a href="#contact" className="btn btn-primary">Schedule a Free Demo</a>
+                                        <a href="#contact" className="btn btn-secondary">Request a Consultation</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <NaavikInitiativesSection />
+                        
+                        <ContactSection />
+                    </main>
+                    
+                    <footer className="py-12 bg-black/50 border-t border-yellow-400/10">
+                        <div className="container mx-auto px-6 text-center text-sm text-gray-400">
+                            <p>Copyright © 2025 Naavik. India’s First Unified Maritime Ecosystem Platform. All Rights Reserved.</p>
+                            <div className="flex justify-center gap-8 mt-6">
+                                <a href="#" className="hover:text-yellow-400 transition-colors duration-300"><i data-lucide="Linkedin" style={{width:24, height:24}}/></a>
+                                <a href="#" className="hover:text-yellow-400 transition-colors duration-300"><i data-lucide="Twitter" style={{width:24, height:24}}/></a>
+                                <a href="#" className="hover:text-yellow-400 transition-colors duration-300"><i data-lucide="Instagram" style={{width:24, height:24}}/></a>
+                            </div>
+                        </div>
+                    </footer>
+                    
+                    {Object.keys(contentData).map(modalId => (
+                        <Modal key={modalId} modalId={modalId} activeModal={activeModal} onCloseModal={handleCloseModal} />
+                    ))}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
